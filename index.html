@@ -385,6 +385,16 @@ html,body{background:var(--page);color:var(--ink)}
 .dayh{display:flex;justify-content:space-between;align-items:baseline;margin:2px 4px 10px}
 .dayh b{font-size:17px;font-weight:500}.dayh span{font-size:15px;font-weight:500;color:var(--ink)}
 
+/* AI states: confidence, loading, error */
+.conf{display:flex;gap:9px;align-items:center;font-size:12.5px;color:#6A6F9A;margin-top:12px;line-height:1.3}
+.conf b{font-weight:600;color:var(--pinkdk)}
+.cdots{display:flex;gap:3px;flex:none}.cdots i{width:14px;height:5px;border-radius:3px;background:rgba(209,42,120,.18)}.cdots i.on{background:var(--pink)}
+.pbar{height:4px;border-radius:2px;background:rgba(209,42,120,.14);overflow:hidden;margin-top:12px}
+.pbar i{display:block;height:100%;width:0;background:var(--pink);border-radius:2px;animation:pb 1.4s ease-out forwards}
+@keyframes pb{to{width:100%}}
+.ai.err .h{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.pbar i{animation:none;width:60%}.sk{animation:none}}
+
 /* pinned context bar */
 .scr{padding-top:116px}
 .topfade{position:absolute;left:0;right:0;top:0;height:104px;z-index:24;pointer-events:none;background:linear-gradient(180deg,rgba(240,242,252,1) 0,rgba(240,242,252,.97) 55%,rgba(240,242,252,0) 100%)}
@@ -470,6 +480,7 @@ const card=(it,i)=>{
 };
 const stack=items=>`<div class="stack">${items.map((it,i)=>card(it,i)).join('')}</div>`;
 const ai=(p,inner)=>`<div class="ai">${pill(p)}${inner}</div>`;
+const conf=(lvl,why)=>{const n={Low:1,Medium:2,High:3}[lvl];return `<div class="conf"><span class="cdots" aria-hidden="true">${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</span><span><b>How sure: ${lvl}</b> · ${why}</span></div>`;};
 const btn=(l,g)=>`<button class="btn" data-go="${g}">${l}</button>`;
 const ghost=(l,g)=>`<button class="ghost" data-go="${g}">${l}</button>`;
 const tbtn=(l,g)=>`<button class="tbtn" data-go="${g}">${l}</button>`;
@@ -493,7 +504,7 @@ S['1.3']={f:F1,t:'Split check',h:()=>back('Kinjo')+
  ai('Looks like a split',`<div class="h">Jamie sent you $40 an hour after this $90 dinner.</div>
  <div class="small mt12">Your share</div>${money('$50','.00','m')}
  <div class="segbar" style="margin-top:14px"><i style="flex:50"></i><i style="flex:40"></i></div>
- <div class="legend"><span>You $50</span><span>Jamie $40</span></div>`)+
+ <div class="legend"><span>You $50</span><span>Jamie $40</span></div>${conf('High','same night, and the note says “dinner”')}`)+
  rows([['Kinjo · Visa','$90.00'],['From Jamie · Venmo','+$40.00']])+
  `<div class="mt8"></div>`+btn('Count only my $50','SPLIT:50')+ghost('Edit my share','1.3a')+tbtn('Not a split','SPLIT:none')};
 S['1.3a']={f:F1,t:'Edit share sheet',base:'1.3',sheet:()=>{
@@ -505,11 +516,11 @@ S['1.3a']={f:F1,t:'Edit share sheet',base:'1.3',sheet:()=>{
 S['1.3c']={f:F1,t:'Name the charge',h:()=>{
  const g=[['Lunch · Dining','Most likely · lunch hour, near Broadway'],['Hair salon · Personal care','Possible · JKM is also a salon']];
  return back('SQ *JKM LLC')+money('$23','.00')+`<div class="small mt8">Oct 24 · 1:40 PM · Visa ••18 · Oakland</div><div class="mt16"></div>`+
- ai('My best guesses',g.map((x,i)=>`<button class="opt ${st.guess===i?'on':''}" data-act="guess${i}"><span class="radio"></span><span><span class="t">${x[0]}</span><br><span class="small">${x[1]}</span></span></button>`).join(''))+
+ ai('My best guesses',g.map((x,i)=>`<button class="opt ${st.guess===i?'on':''}" data-act="guess${i}"><span class="radio"></span><span><span class="t">${x[0]}</span><br><span class="small">${x[1]}</span></span></button>`).join('')+conf('Low','the bank text only shows a business name'))+
  `<div class="input">None of these? Type what it was</div>`+btn('Save','JKM_SAVE')}};
 S['1.2']={f:F1,t:'Entry · why Groceries',h:()=>back('Entry')+
  `<div class="tot"><div class="crow"><div class="ic">T</div><div class="cm"><div class="mer">Target</div><div class="cat" style="opacity:1;color:var(--sub)">Oct 23 · Debit ••07 · Groceries</div></div></div>${money('$64','.10')}</div>`+
- ai('Why Groceries',`<div class="mt8">${rows([['Bank text','TARGET 00031 FREMONT'],['Place','Fremont · Mowry Ave'],['Past visits','<span class="sq"></span><span class="sq"></span><span class="sq"></span><span class="sq l"></span><span class="sq l"></span>'],['How sure','Medium']])}</div>`)+
+ ai('Why Groceries',`<div class="mt8">${rows([['Bank text','TARGET 00031 FREMONT'],['Place','Fremont · Mowry Ave'],['Past visits','<span class="sq"></span><span class="sq"></span><span class="sq"></span><span class="sq l"></span><span class="sq l"></span>']])}</div>${conf('Medium','your last Target trips were groceries, but Target sells more than food')}`)+
  btn('Looks right','back')+ghost('Change category','RECAT:Target')};
 S['1.4']={f:F1,t:'Change category',get base(){return st.catBase||'1.2'},sheet:()=>`<div class="lab">${st.recat}</div><div class="h2">Move to…</div>
  <div class="catgrid">${PICK.map(c=>`<button class="cg ${st.pick===c?'on':''}" data-act="pick:${c}"><span class="ci">${icon(c)}</span><span>${c}</span></button>`).join('')}</div>${btn('Save','CAT_SAVE')}`};
@@ -542,7 +553,7 @@ const LIM=()=>ORDER.map((n,i)=>{const c=CATS[n],v=st.suggested[n],set=st.touched
  if(!c.sug&&!set)it.dashed=1;
  if(i===ORDER.length-1)it.last=1;return it;});
 S['2.0']={f:F2,t:'Suggested limits',h:()=>back('Set up limits')+ttl('Suggested','Limits')+
- ai('Written from your last 3 months',`<div class="p mt8">Suggested from your last three months. One-off costs are left out.</div>`)+
+ ai('Written from your last 3 months',`<div class="p mt8">Suggested from your last three months. One-off costs are left out.</div>${conf('Medium','three months of history; Personal care has too little')}`)+
  stack(LIM())+btn('Review limits','2.0b')+ghost('Adjust amounts','2.0d')};
 S['2.0d']={f:F2,t:'Pick a category',base:'2.0',sheet:()=>`<div class="h2">Which limit?</div><div class="small">Pick one. You can change the others after.</div><div class="mt12"></div>`+
  ORDER.map(n=>{const v=st.suggested[n];return `<button class="opt ${st.cat===n?'on':''}" data-act="cat:${n}" style="align-items:center"><span class="radio" style="margin-top:0"></span><span class="t" style="flex:1">${n}</span><span class="t" style="color:${v==null?'var(--sub)':'var(--ink)'}">${v==null?'Open':fmt(v)}</span></button>`}).join('')+
@@ -572,7 +583,7 @@ S['2.1a']={f:F2,t:'Dining detail',h:()=>{
  const d=[0,12,0,18,0,24,6,0,14,0,0,0,8,0,22,6,0,0,8,0,0,0,50,31,47,0];
  return back('Dining')+`<div class="tot">${pill('Limit $300')}${money('$246','')}<div class="small mt8">spent so far · 5 days left</div>
  <div class="vbars">${d.map((v,i)=>`<i class="${v?(i>=22?'':'lt'):'z'}" style="height:${v?Math.max(6,v*1.3):2}px"></i>`).join('')}</div></div>`+
- ai('Likely by Oct 31',`${money('$40–70','','m')}<div class="h" style="margin-top:2px">over your $300 limit</div><div class="p mt8">Three dinners out this week did most of it.</div>
+ ai('Likely by Oct 31',`${money('$30–45','','m')}<div class="h" style="margin-top:2px">over your $300 limit</div><div class="p mt8">At last week’s pace, about $18 a day, you’d end near $337. Three dinners out this week did most of it.</div>${conf('Medium','based on 7 days of spending')}
  <div class="mt8">${rows([['Bar Agricole · Thu','$47'],['Kinjo · Mon · your share','$50'],['Shake Shack · Wed','$31']])}</div>`)+
  btn('Got it','HOME')+
  (st.useful===null?`<div class="small" style="text-align:center;margin-top:10px">Was this useful? <button data-act="use1" style="text-decoration:underline">Yes</button> · <button data-act="use0" style="text-decoration:underline">Not really</button></div>`:`<div class="thanks">Thanks. ${st.useful?'We’ll keep these coming.':'We’ll send fewer of these.'}</div>`)}};
@@ -580,7 +591,7 @@ S['2.3a']={f:F2,t:'Which was a one-off?',base:'2.1a',sheet:()=>{const it=[['Bar 
  return `<div class="h2">Which one was the one-off?</div><div class="small">We’ll leave it out when guessing the rest of October.</div>`+
  it.map((x,i)=>`<button class="opt ${st.oneoff[i]?'on':''}" data-act="oo${i}"><span class="box">${st.oneoff[i]?'✓':''}</span><span class="t" style="flex:1">${x[0]}</span><span class="t">${x[1]}</span></button>`).join('')+btn('Re-check Dining','2.3')}};
 S['2.3']={f:F2,t:'Back on track',tab:'Limits',h:()=>topRow()+ttl('Limits','October')+
- ai('Back on track',`${money('$275–295','','m')}<div class="small mt8">likely by Oct 31</div>
+ ai('Back on track',`${money('$250–270','','m')}<div class="small mt8">likely by Oct 31</div>
  <div class="lines">${line('Dining','$246 of $300',82)}</div><div class="p mt12">Without the birthday dinner, the rest of your week looks normal.</div>`)+
  stack([{cat:'On track',name:'Groceries',amt:'$312',icon:'G'},{cat:'On track',name:'Fun',amt:'$64',icon:'F',last:1}]),
  toast:()=>toast('Marked as a one-off.','2.1a')};
@@ -590,7 +601,7 @@ S['2.4']={f:F2,t:'Change Dining limit',base:'2.1a',sheet:()=>`<div class="lab">D
  <div class="seg"><button class="${st.seg==='oct'?'on':''}" data-act="seg:oct">October only</button><button class="${st.seg==='all'?'on':''}" data-act="seg:all">From now on</button></div>
  ${btn('Save',st.seg==='oct'?'2.4a':'2.4b')}`};
 const dining380=(p,note)=>back('Dining')+`<div class="tot">${pill('Limit $380 · '+p,'fill')}${money('$246','')}<div class="small mt8">of $380</div>
- <div class="lines">${line('Likely $340–370','On track',65)}</div></div><div class="p">${note}</div>`;
+ <div class="lines">${line('Likely $330–345','On track',65)}</div></div><div class="p">${note}</div>`;
 S['2.4a']={f:F2,t:'Limit · October only',tab:'Limits',h:()=>dining380('October only','Goes back to $300 on Nov 1.'),toast:()=>toast('Dining limit is $380 for October.','2.1a')};
 S['2.4b']={f:F2,t:'Limit · from now on',tab:'Limits',h:()=>dining380('From now on','$380 from now on. You can change it any time in Limits.'),toast:()=>toast('Dining limit is now $380.','2.1a')};
 
@@ -599,22 +610,22 @@ const venmoBars=`<div class="vbars" style="height:80px">${[42,35,60,28,50,250].m
 const gift={cat:'Gift',name:'Venmo · Daniel',amt:'−$250.00',icon:'V'};
 S['3.1']={f:F3,t:'One-off spotted',h:()=>back('Venmo · Daniel')+
  ai('Looks like a one-off',`<div class="crow mt12"><div class="ic" style="background:var(--g1)">V</div><div class="cm"><div class="cat">Venmo · Daniel · “wedding”</div><div class="mer">$250.00</div></div>${pill('Gift?','dash')}</div>
- ${venmoBars}<div class="p mt12">About 5× your usual Venmo payment. Want help fitting it into October?</div>${btn('Re-plan','3.2a')}
+ ${venmoBars}<div class="p mt12">About 5× your usual Venmo payment. Want help fitting it in?</div>${conf('Medium','one large payment, and the note says “wedding”')}${btn('Re-plan','3.2a')}
  <div class="links">${tbtn('This is regular','D_REG')}${tbtn('Dismiss','D_DIS')}</div>`)};
-S['3.2a']={f:F3,t:'Writing options',h:()=>back('Re-plan')+`<div class="h2">Fitting $250 into October</div>`+
- tot('Room left','$290','',`<div class="lines">${line('Dining','$118',40)}${line('Shopping','$126',43)}${line('Fun','$46',16)}</div>`)+
+S['3.2a']={f:F3,t:'Writing options',h:()=>back('Re-plan')+`<div class="h2">Covering $250</div>`+
+ tot('Room left in October','$226','',`<div class="lines">${line('Dining','$54',18)}${line('Shopping','$126',42)}${line('Fun','$46',15)}</div><div class="small mt12">$24 short, so every option takes a little from November.</div>`)+
  `<div class="small">Don’t touch</div><div class="chips mt8"><span class="chip on" style="display:inline-flex;align-items:center">Groceries</span><span class="chip on" style="display:inline-flex;align-items:center">Gas</span></div>
  <div class="input">Anything I should keep?</div><div class="chips mt8"><button class="chip">Weekend coffee</button><button class="chip">Gym</button><button class="chip">Gas</button></div><div class="mt16"></div>`+
  ai('Writing options…',`<div class="sk" style="width:90%"></div><div class="sk" style="width:70%"></div><div class="sk" style="width:80%"></div>`),
  auto:['3.2',2400],alts:[['Demo: no option fits →','3.3']]};
 const PLANS={
- A:{name:'Spread it',v:'Realistic. You’ve done this before.',parts:[['Dining',80],['Shopping',100],['Fun',70]]},
- B:{name:'Shopping only',v:'Hard. You usually spend $180+ there.',parts:[['Shopping',200]],nov:50},
- C:{name:'Dining and Fun',v:'Tight, but doable.',parts:[['Dining',150],['Fun',100]]},
- D:{name:'Mostly Shopping',v:'Doable if you skip one big order.',parts:[['Shopping',150],['Fun',100]]},
- E:{name:'Half now, half in November',v:'Easier on October.',parts:[['Dining',60],['Shopping',65]],nov:125},
+ A:{name:'Spread it',v:'Realistic. Leaves a little in each for the last 5 days.',parts:[['Dining',30],['Shopping',100],['Fun',30]],nov:90},
+ B:{name:'Shopping first',v:'Tight. Nothing left for Shopping until November.',parts:[['Shopping',126],['Fun',20]],nov:104},
+ C:{name:'Mostly November',v:'Easiest on October, tighter November.',parts:[['Shopping',60],['Fun',20]],nov:170},
+ D:{name:'Use all of October',v:'Smallest hit to November, but nothing left this month.',parts:[['Dining',54],['Shopping',126],['Fun',46]],nov:24},
+ E:{name:'Half now, half in November',v:'Even split between the two months.',parts:[['Shopping',100],['Fun',25]],nov:125},
  N:{name:'Two-month plan',parts:[['Fun',40]],nov:210}};
-const BASE={Dining:300,Shopping:200,Fun:110},SPENT={Dining:182,Shopping:74,Fun:22};
+const BASE={Dining:300,Shopping:200,Fun:110},SPENT={Dining:246,Shopping:74,Fun:64};
 const NOTE={Dining:'Fewer dinners out for 5 days',Shopping:'Hold off until November',Fun:'One less night out'};
 const legendOf=pl=>pl.parts.map(p=>`<span>${p[0]} −$${p[1]}</span>`).join('')+(pl.nov?`<span>November −$${pl.nov}</span>`:'');
 const opt=k=>{const pl=PLANS[k],on=st.opt===k;return `<button class="optcard" data-act="opt:${k}" style="display:block;width:100%;text-align:left;${on?'border:1.5px solid var(--ink)':''}" aria-pressed="${on}">
@@ -643,7 +654,7 @@ S['3.3b']={f:F3,t:'Left as is',h:()=>back('Venmo · Daniel')+
  toast:()=>toast('Left as is. Tagged Gift.','3.3')};
 const planCard=(n,a,b,s)=>`<div class="tot" style="padding:16px 18px"><div class="lab" style="font-size:14px">${n}</div><div class="h2" style="margin:2px 0 4px">$${a} → $${b}</div><div class="small">${s}</div></div>`;
 S['3.4']={f:F3,t:'Review plan',h:()=>{const pl=PLANS[st.opt];return back('Review plan')+`<div class="lab">Daniel’s wedding gift · ${st.opt==='N'?'two-month plan':'option '+st.opt}</div><div class="big" style="margin-bottom:14px">$250</div>`+
- pl.parts.map(([n,v])=>planCard(n,BASE[n],BASE[n]-v,BASE[n]-v<=0?'Nothing left for this until November':NOTE[n])).join('')+
+ pl.parts.map(([n,v])=>planCard(n,BASE[n],BASE[n]-v,BASE[n]-v<=SPENT[n]?'Nothing left for this until November':NOTE[n])).join('')+
  (pl.nov?`<div class="tot gdash" style="padding:16px 18px"><div class="lab" style="font-size:14px">November</div><div class="h2" style="margin:2px 0 4px">−$${pl.nov}</div><div class="small">Taken from next month’s limits on Nov 1</div></div>`:'')+
  `<div class="small">No money moves. Only your limits change.</div>`+btn('Approve','3.5')+ghost('Cancel','3.5b')}};
 S['3.5']={f:F3,t:'Plan applied',tab:'Limits',h:()=>{const pl=PLANS[st.opt],cut={};pl.parts.forEach(([n,v])=>cut[n]=v);
@@ -651,11 +662,30 @@ S['3.5']={f:F3,t:'Plan applied',tab:'Limits',h:()=>{const pl=PLANS[st.opt],cut={
  return `<div class="banner dark"><div class="p">Plan applied. You can undo until 9:40 PM tomorrow.</div><button class="mini" data-go="3.5a">Undo</button></div>`+
  ttl('Limits','October')+stack(names.map((n,i)=>{const lim=BASE[n]-(cut[n]||0);return {cat:`$${SPENT[n]} of $${lim}`+(cut[n]?` · was $${BASE[n]}`:''),name:n,amt:'$'+lim,icon:n[0],last:i===2?1:0}}))+
  (pl.nov?`<div class="small mt12">November limits will start $${pl.nov} lower.</div>`:'')}};
-S['3.5a']={f:F3,t:'Undone',tab:'Limits',h:()=>topRow()+ttl('Limits','October')+stack([{cat:'$182 of $300',name:'Dining',amt:'$300',icon:'D'},{cat:'$74 of $200',name:'Shopping',amt:'$200',icon:'S'},{cat:'$22 of $110',name:'Fun',amt:'$110',icon:'F',last:1}]),
+S['3.5a']={f:F3,t:'Undone',tab:'Limits',h:()=>topRow()+ttl('Limits','October')+stack([{cat:'$246 of $300',name:'Dining',amt:'$300',icon:'D'},{cat:'$74 of $200',name:'Shopping',amt:'$200',icon:'S'},{cat:'$64 of $110',name:'Fun',amt:'$110',icon:'F',last:1}]),
  toast:()=>toast('Your previous limits are back.')};
 S['3.5b']={f:F3,t:'Plan canceled',h:()=>back('Venmo · Daniel')+`<div class="tot">${pill('Gift','fill')}${money('$250','.00')}<div class="small mt8">No limits changed.</div></div>`+ghost('Re-plan later','3.2a'),
  toast:()=>toast('Plan canceled. Your limits are the same.','',1)};
 
+
+/* AI error states (graceful failure) */
+S['1.3c-e']={f:F1,t:'AI couldn’t name it',h:()=>back('SQ *JKM LLC')+money('$23','.00')+`<div class="small mt8">Oct 24 · 1:40 PM · Visa ••18 · Oakland</div><div class="mt16"></div>`+
+ ai('Couldn’t name it',`<div class="h">I couldn’t finish reading this charge.</div><div class="p mt8">The connection dropped before I could check it against your other charges. Nothing was changed.</div>`)+
+ btn('Try again','RETRY:1.3c')+ghost('Pick a category myself','RECAT:SQ *JKM LLC')+tbtn('Leave it for now','back')};
+S['2.1a-e']={f:F2,t:'Forecast unavailable',h:()=>back('Dining')+`<div class="tot">${pill('Limit $300')}${money('$246','')}<div class="small mt8">spent so far · 5 days left</div></div>`+
+ ai('Forecast unavailable',`<div class="h">I can’t forecast the rest of October right now.</div><div class="p mt8">This week’s charges didn’t finish loading, so I won’t guess. What you’ve spent so far is up to date.</div>`)+
+ btn('Try again','RETRY:2.1a')+ghost('See Dining charges','LEDGER')};
+S['3.2-e']={f:F3,t:'Couldn’t write options',h:()=>back('Re-plan')+`<div class="h2">Covering $250</div>`+
+ ai('Couldn’t write options',`<div class="h">I couldn’t put options together this time.</div><div class="p mt8">Your limits haven’t changed. You can try again, or set the amounts yourself.</div>`)+
+ btn('Try again','3.2a')+ghost('Set amounts myself','3.4a')+tbtn('Not now','HOME')};
+/* AI loading states: [bar title, pill, progress line] */
+S['1.3'].load=['Kinjo','Checking','Matching Venmo payments to your dinners…'];
+S['1.3c'].load=['SQ *JKM LLC','Reading the charge','Reading the bank text and nearby charges…'];
+S['2.0'].load=['Set up limits','Looking back','Going through your last three months…'];
+S['2.1a'].load=['Dining','Checking','Checking your last 7 days of Dining…'];
+S['1.3c'].alts=[['Demo: AI can’t finish →','1.3c-e']];
+S['2.1a'].alts=[['Demo: forecast fails →','2.1a-e']];
+S['3.2a'].alts.push(['Demo: AI error →','3.2-e']);
 
 /* ---------- ONE CONNECTED APP ---------- */
 /* Base data is identical in every flow. Only the AI suggestions (st.ai) differ per flow. */
@@ -668,9 +698,9 @@ function homeSeg(){return `<div class="seg" style="margin:0 0 14px"><button clas
 function pending(){const r=[];
  if(has('split')&&st.split==null)r.push(['Dining','Kinjo $90 looks like a split','Jamie sent you $40 an hour later','1.3']);
  if(has('jkm')&&st.jkm==null)r.push([null,'Not sure what SQ *JKM LLC was','$23 · my best guess is lunch','1.3c']);
- if(has('oneoff')&&st.daniel==='flag')r.push(['Transfer','$250 to Daniel looks like a one-off','Want help fitting it into October?','3.1']);
+ if(has('oneoff')&&st.daniel==='flag')r.push(['Transfer','$250 to Daniel looks like a one-off','Want help fitting it in?','3.1']);
  if(has('limits')&&!st.seen.has('2.0c'))r.push(['Other','Your limits could fit you better','Suggested from your last three months','2.0']);
- if(has('headsup')&&!st.seen.has('2.1a'))r.push(['Dining','Dining is heading over','Likely $40–70 over by Oct 31','2.1']);
+ if(has('headsup')&&!st.seen.has('2.1a'))r.push(['Dining','Dining is heading over','Likely $30–45 over by Oct 31','2.1']);
  return r;}
 function forYou(){const r=pending();
  if(!r.length)return `<div class="tot gdash" style="padding:18px 20px"><div class="h2" style="font-size:20px;margin:0">You’re all caught up</div><div class="small">Nothing needs a look right now.</div></div>`;
@@ -689,7 +719,7 @@ function allTx(){const L=[];const A=(d,o)=>L.push({...o,d});
  A(26,BB);A(26,TJ);
  if(st.daniel==='flag')A(25,{cat:'Venmo',name:'Venmo · Daniel',amt:'−$250.00',ai:has('oneoff'),...(has('oneoff')?{flag:'One-off?',go:'3.1'}:{})});
  else A(25,{cat:st.daniel==='regular'?'Venmo':'Gift',name:'Venmo · Daniel',amt:'−$250.00',sub:st.daniel==='planned'?'Covered by a re-plan':''});
- if(st.jkm)A(24,{cat:st.jkm+' · named by you',name:st.jkm==='Personal care'?'JKM Salon':'JKM Kitchen',amt:'−$23.00'});
+ if(st.jkm)A(24,{cat:st.jkm+' · named by you',name:st.jkm==='Personal care'?'JKM Salon':st.jkm==='Dining'?'JKM Kitchen':'SQ *JKM LLC',amt:'−$23.00'});
  else A(24,{cat:'Uncategorized',name:'SQ *JKM LLC',amt:'−$23.00',icon:'?',ai:has('jkm'),...(has('jkm')?{flag:'Name it?',go:'1.3c'}:{})});
  A(24,SH);A(23,{cat:'Groceries',name:'Target',amt:'−$64.10'});
  if(typeof st.split==='number'){A(22,{cat:'Dining',name:'Kinjo',amt:`−$${st.split}.00`,flag:'Split',flagc:''});A(22,{cat:'Venmo · Jamie',name:'From Jamie',amt:'+$40.00',sub:'Linked to Kinjo'});}
@@ -732,8 +762,8 @@ let flow='1',hist=[],cur='H',timer=null;
 const phone=document.getElementById('phone'),cap=document.getElementById('cap');
 function barRight(id){
   if(id==='L')return st.day===TODAY?'Today · Oct 26':`${dow(st.day)}, Oct ${st.day}`;
-  if(['LIM','3.5','3.5a','2.1a','2.3','2.4a','2.4b'].includes(id))return '5 days left';
-  if(['1.3','1.3a'].includes(id))return 'Thu, Oct 22';if(id==='1.3c')return 'Sat, Oct 24';if(['1.2','1.4','1.4a','1.4b','1.4c','1.4d'].includes(id))return 'Fri, Oct 23';
+  if(['LIM','3.5','3.5a','2.1a','2.1a-e','2.3','2.4a','2.4b'].includes(id))return '5 days left';
+  if(['1.3','1.3a'].includes(id))return 'Thu, Oct 22';if(id==='1.3c'||id==='1.3c-e')return 'Sat, Oct 24';if(['1.2','1.4','1.4a','1.4b','1.4c','1.4d'].includes(id))return 'Fri, Oct 23';
   if(/^2\.0|^E[12]/.test(id))return 'October limits';if(id==='3.1'||id==='3.5b'||id==='3.3b')return 'Sun, Oct 25';if(/^3\.[234]/.test(id))return '$250 to cover';
   return 'Mon, Oct 26';}
 function topbar(id,s){const b=BAR||{title:{H:'Hi, Erin',L:'Ledger',LIM:'Limits','3.5':'Limits','3.5a':'Limits'}[id]||s.t};
@@ -741,6 +771,12 @@ function topbar(id,s){const b=BAR||{title:{H:'Hi, Erin',L:'Ledger',LIM:'Limits',
 function render(){
   clearTimeout(timer);BAR=null;
   const s=S[cur];let html='';st.seen.add(cur);if(s.tab&&!s.base)st.last[s.tab]=cur;if(cur==='3.5'){st.plan=true;st.daniel='planned';}if(cur==='3.5a'||cur==='3.5b')st.plan=false;if(cur==='3.3b')st.daniel='left';if(cur==='2.1'&&!st.applied){st.applied=1;ORDER.forEach(n=>{if(n in st.cur)st.cur[n]=st.suggested[n];});}if(cur==='2.4a'||cur==='2.4b')st.dlim=380;
+  if(s.load&&!s.base&&!st.loaded.has(cur)){const here=cur;back(s.load[0]);
+    html=`<div class="scr">${ai(s.load[1],`<div class="p mt8">${s.load[2]}</div><div class="pbar"><i></i></div><div class="sk" style="width:90%"></div><div class="sk" style="width:65%"></div><div class="sk" style="width:78%"></div>`)}</div>${topbar(cur,s)}${s.tab?tabbar(s.tab):''}`;
+    phone.innerHTML=status()+html;
+    cap.innerHTML=`<b>${cur}</b> · ${s.t} · loading`+(s.alts?`<div class="alts">${s.alts.map(a=>`<button data-go="${a[1]}">${a[0]}</button>`).join('')}</div>`:'');
+    document.querySelectorAll('.ftab').forEach(b=>b.setAttribute('aria-selected',b.dataset.flow===flow));
+    timer=setTimeout(()=>{if(cur===here){st.loaded.add(here);render();}},1400);return;}
   if(s.base){const b=S[s.base];const bh=b.h();html=`<div class="scr base">${bh}</div>${topbar(s.base,b)}${b.tab?tabbar(b.tab):''}<div class="dim" data-go="back"></div><div class="sheet"><div class="grab"></div>${s.sheet()}</div>`;}
   else if(s.raw){html=`<div class="scr" style="padding:0">${s.h()}</div>`;}
   else{const sh=s.h();html=`<div class="scr">${sh}</div>${topbar(cur,s)}${s.tab?tabbar(s.tab):''}${s.toast?s.toast():''}`;}
@@ -757,6 +793,8 @@ function go(id){
   if(id==='back'){cur=hist.length?hist.pop():START[flow];keepScroll=false;return render();}
   if(id==='SAVE_SHARE')id='SPLIT:'+st.share;
   if(id==='HOME'){hist=[];cur='H';return render();}
+  if(id.startsWith('RETRY:')){const t=id.slice(6);st.loaded.delete(t);if(hist[hist.length-1]===t)hist.pop();cur=t;keepScroll=false;return render();}
+  if(id==='LEDGER'){hist=['H'];st.day=TODAY;cur='L';return render();}
   if(id==='E1'){st.ecat=st.ecat||'Dining';}
   if(id==='E2'){st.edraft=null;}
   if(id==='LIMBACK'){hist=['H'];cur='LIM';st.edraft=null;return render();}
@@ -775,6 +813,7 @@ function go(id){
   if(id==='2.0d')st.draft=null;
   if(id.startsWith('RECAT:')){st.recat=id.slice(6);st.catBase=cur;st.pick=st.cats[st.recat]||DEFCAT[st.recat]||'Other';id='1.4';}
   if(id==='CAT_SAVE'){const n=st.recat,prev=st.cats[n];st.cats[n]=st.pick;
+    if(n==='SQ *JKM LLC'){delete st.cats[n];st.jkm=st.pick;st.flash={t:`Filed under ${st.pick}.`,undo:()=>{st.jkm=null;}};hist=['H'];st.day=24;cur='L';return render();}
     if(n==='Target'&&st.pick!=='Groceries'){st.move=st.pick;id='1.4a';}
     else{st.flash={t:`${n} moved to ${st.pick}.`,undo:()=>{if(prev)st.cats[n]=prev;else delete st.cats[n];}};cur=hist.length?hist.pop():START[flow];return render();}}
   if(id==='NEW_OPTS'){st.opt='D';id='3.2b';}
@@ -821,7 +860,7 @@ function toggleCard(c){
   requestAnimationFrame(()=>{c.classList.add('open');c.style.height=(100+(+c.dataset.dh)+(last?20:58))+'px';});
 }
 function reset(){Object.assign(st,{share:50,guess:0,move:'Shopping',checks:[true,true,false,true],nextTime:true,suggested:{Dining:300,Groceries:450,Fun:150,Shopping:200,Gas:160,'Personal care':null},touched:{},cat:'Fun',draft:null,opt:'A',seg:'oct',useful:null,oneoff:[true,false,false]});}
-function startFlow(f){flow=f;hist=[];cur=START[f];reset();st.homeTab='today';st.day=TODAY;st.split=null;st.jkm=null;st.daniel='flag';st.dlim=null;st.cats={};st.catBase=null;st.flash=null;st.last={};st.seen=new Set();st.plan=false;st.applied=0;
+function startFlow(f){flow=f;hist=[];cur=START[f];reset();st.homeTab='today';st.day=TODAY;st.split=null;st.jkm=null;st.daniel='flag';st.dlim=null;st.cats={};st.catBase=null;st.flash=null;st.last={};st.seen=new Set();st.loaded=new Set();st.plan=false;st.applied=0;
   st.cur={Dining:300,Groceries:450,Fun:110,Shopping:200,Gas:160};
   st.ai=AI_BY_FLOW[f];   /* the only thing that differs between flows */
   render();}
