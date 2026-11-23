@@ -384,6 +384,16 @@ html,body{background:var(--page);color:var(--ink)}
 .cd.fut{color:#C9CBDA;cursor:default}
 .dayh{display:flex;justify-content:space-between;align-items:baseline;margin:2px 4px 10px}
 .dayh b{font-size:17px;font-weight:500}.dayh span{font-size:15px;font-weight:500;color:var(--ink)}
+
+/* pinned context bar */
+.scr{padding-top:116px}
+.topfade{position:absolute;left:0;right:0;top:0;height:104px;z-index:24;pointer-events:none;background:linear-gradient(180deg,rgba(240,242,252,1) 0,rgba(240,242,252,.97) 55%,rgba(240,242,252,0) 100%)}
+.topbar{position:absolute;left:16px;right:16px;top:50px;height:50px;z-index:25;display:flex;align-items:center;gap:10px;padding:0 16px 0 8px;border-radius:18px;
+ background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 10px 24px -14px rgba(40,50,120,.35)}
+.topbar b{flex:1;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar span:last-child{font-size:13px;color:var(--sub);white-space:nowrap}
+.tb-back{width:34px;height:34px;border-radius:12px;background:var(--lav);display:grid;place-items:center;font-size:17px;flex:none}
+.tb-dot{width:8px;height:8px;border-radius:50%;background:var(--blue);margin-left:10px;flex:none}
 </style>
 </head>
 <body>
@@ -399,13 +409,14 @@ html,body{background:var(--page);color:var(--ink)}
 </div>
 <script>
 const G=['#3B5BF0','#FFFFFF','#E4E7FC','#FF7A45'],DARK=[1,0,0,1];
-const st={share:50,guess:0,move:'Shopping',checks:[true,true,false,true],nextTime:true,lim:{Dining:300,Groceries:450,Fun:150,Shopping:200,Gas:160,'Personal care':null},touched:{},cat:'Fun',draft:null,opt:'A',seg:'oct',useful:null,oneoff:[true,false,false]};
+const st={share:50,guess:0,move:'Shopping',checks:[true,true,false,true],nextTime:true,suggested:{Dining:300,Groceries:450,Fun:150,Shopping:200,Gas:160,'Personal care':null},touched:{},cat:'Fun',draft:null,opt:'A',seg:'oct',useful:null,oneoff:[true,false,false]};
 
 /* ---------- helpers ---------- */
 const status=()=>`<div class="status"><span>9:41</span><span class="bat"></span></div>`;
 const topRow=()=>`<div style="height:14px"></div>`;
 const ttl=(l,b)=>`<div class="ttl"><div class="lab">${l}</div><div class="big">${b}</div></div>`;
-const back=t=>`<div class="bk"><button class="circ" data-go="back" aria-label="Back">←</button><span>${t}</span></div>`;
+let BAR=null;
+const back=t=>{BAR={title:t,back:1};return '';};
 const pill=(t,c='')=>`<span class="pill ${c}">${t}</span>`;
 const money=(whole,cents='.00',cls='')=>`<div class="num ${cls}">${whole}<span>${cents}</span></div>`;
 const line=(l,v,pct)=>`<div class="ln"><div class="lt"><span>${l}</span><b>${v}</b></div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
@@ -525,8 +536,8 @@ const CATS={Dining:{sug:300,lo:270,hi:330,floor:255,ic:'D'},Groceries:{sug:450,l
  Shopping:{sug:200,lo:180,hi:230,floor:170,ic:'S'},Gas:{sug:160,lo:140,hi:175,floor:135,ic:'G'},'Personal care':{sug:null,ic:'P'}};
 const ORDER=Object.keys(CATS);
 const DEFCAT={'Blue Bottle':'Coffee','Trader Joe’s':'Groceries','Shell':'Gas','Kinjo':'Dining','Target':'Groceries','JKM Kitchen':'Dining','JKM Salon':'Personal care'};
-const LIM=()=>ORDER.map((n,i)=>{const c=CATS[n],v=st.lim[n],set=st.touched[n];
- const it={name:n,icon:c.ic,cat:c.sug?`Usually $${c.lo}–$${c.hi}`:'Not enough history yet',amt:v==null?(c.sug?'Open':'—'):fmt(v)};
+const LIM=()=>ORDER.map((n,i)=>{const c=CATS[n],v=st.suggested[n],set=st.touched[n];
+ const it={name:n,icon:c.ic,cat:c.sug?`Usually $${c.lo}–$${c.hi}`+(st.cur&&st.cur[n]!=null&&st.cur[n]!==v?` · now ${fmt(st.cur[n])}`:''):'Not enough history yet',amt:v==null?(c.sug?'Open':'—'):fmt(v)};
  if(set)it.cat=v==null?'No limit':'Set by you';
  if(!c.sug&&!set)it.dashed=1;
  if(i===ORDER.length-1)it.last=1;return it;});
@@ -534,10 +545,10 @@ S['2.0']={f:F2,t:'Suggested limits',h:()=>back('Set up limits')+ttl('Suggested',
  ai('Written from your last 3 months',`<div class="p mt8">Suggested from your last three months. One-off costs are left out.</div>`)+
  stack(LIM())+btn('Review limits','2.0b')+ghost('Adjust amounts','2.0d')};
 S['2.0d']={f:F2,t:'Pick a category',base:'2.0',sheet:()=>`<div class="h2">Which limit?</div><div class="small">Pick one. You can change the others after.</div><div class="mt12"></div>`+
- ORDER.map(n=>{const v=st.lim[n];return `<button class="opt ${st.cat===n?'on':''}" data-act="cat:${n}" style="align-items:center"><span class="radio" style="margin-top:0"></span><span class="t" style="flex:1">${n}</span><span class="t" style="color:${v==null?'var(--sub)':'var(--ink)'}">${v==null?'Open':fmt(v)}</span></button>`}).join('')+
+ ORDER.map(n=>{const v=st.suggested[n];return `<button class="opt ${st.cat===n?'on':''}" data-act="cat:${n}" style="align-items:center"><span class="radio" style="margin-top:0"></span><span class="t" style="flex:1">${n}</span><span class="t" style="color:${v==null?'var(--sub)':'var(--ink)'}">${v==null?'Open':fmt(v)}</span></button>`}).join('')+
  btn('Next','2.0a')};
 S['2.0a']={f:F2,t:'Adjust a limit',base:'2.0',sheet:()=>{const c=CATS[st.cat],n=st.cat;
- if(st.draft==null)st.draft=st.lim[n]??(c.sug||60);
+ if(st.draft==null)st.draft=st.suggested[n]??(c.sug||60);
  const max=c.sug?Math.round(c.hi*1.6/10)*10:200,pct=st.draft/max*100;
  return `<div class="lab">${n}</div><div class="small">${c.sug?`Suggested $${c.sug} · Your usual $${c.lo}–$${c.hi}`:'No history yet · pick a starting point'}</div>${money('$'+st.draft,'')}
  <div class="slider"><div class="base1"></div>${c.sug?`<div class="band" style="left:${c.lo/max*100}%;width:${(c.hi-c.lo)/max*100}%"></div>`:''}<div class="fillb" style="width:${pct}%"></div><div class="knob" style="left:${pct}%"></div></div>
@@ -547,7 +558,7 @@ S['2.0a']={f:F2,t:'Adjust a limit',base:'2.0',sheet:()=>{const c=CATS[st.cat],n=
 S['2.0a′']={f:F2,t:'Rarely kept',base:'2.0',sheet:()=>{const c=CATS[st.cat];return `<div class="lab">${st.cat}</div>${money('$'+st.draft,'')}
  <div class="mt12"></div>${ai('Rarely kept',`<div class="p mt8">You haven’t spent under $${c.floor} on ${st.cat} in any month since August. You can still keep $${st.draft}.</div>`)}
  ${btn('Keep $'+st.draft,'AMT_KEEP')}${ghost(`Go back to $${c.sug}`,'AMT_RESET')}`}};
-S['2.0b']={f:F2,t:'Review limits',h:()=>{const total=ORDER.reduce((t,n)=>t+(st.lim[n]||0),0);
+S['2.0b']={f:F2,t:'Review limits',h:()=>{const total=ORDER.reduce((t,n)=>t+(st.suggested[n]||0),0);
  return back('Review')+ttl('Your','Limits')+tot('Total limits',fmt(total),'',`<div class="small mt8">a month</div>`)+stack(LIM())+btn('Use these limits','2.0c')}};
 S['2.0c']={f:F2,t:'Heads-up settings',tab:'Limits',h:()=>back('Heads-ups')+`<div class="h2">When should I give you a heads-up?</div>`+
  `<div class="split"><div class="small">Time</div><div class="h2" style="margin:4px 0 0">8:00 PM</div></div>
@@ -671,7 +682,7 @@ function homeBody(){const [w,c]=money2(monthTotal());
  return tot('Spent in October',w,c,`<div class="small mt8">5 days left in October</div>`)+
   `<div class="tot" style="padding:16px 20px">${pill('Limits used')}<div class="lines" style="margin-top:12px">${MONTH.map(([n,a])=>{const l=limitOf(n);return l?line(n,`$${a} of $${l}`,Math.min(100,a/l*100)):line(n,`$${a} · no limit`,0)}).join('')}</div></div>`+
   `<button class="tbtn" data-tab="Limits">Open Limits</button>`;}
-S['H']={f:F1,t:'Home',tab:'Home',h:()=>`<div class="lab" style="margin:18px 2px 14px;font-size:17px">Monday, October 26</div>`+forYou()+homeSeg()+homeBody()};
+S['H']={f:F1,t:'Home',tab:'Home',h:()=>`<div style="height:4px"></div>`+forYou()+homeSeg()+homeBody()};
 const TODAY=26;
 const dow=d=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(2026,9,d).getDay()];
 function allTx(){const L=[];const A=(d,o)=>L.push({...o,d});
@@ -719,12 +730,20 @@ const START={'1':'H','2':'H','3':'H'};
 /* ---------- router ---------- */
 let flow='1',hist=[],cur='H',timer=null;
 const phone=document.getElementById('phone'),cap=document.getElementById('cap');
+function barRight(id){
+  if(id==='L')return st.day===TODAY?'Today · Oct 26':`${dow(st.day)}, Oct ${st.day}`;
+  if(['LIM','3.5','3.5a','2.1a','2.3','2.4a','2.4b'].includes(id))return '5 days left';
+  if(['1.3','1.3a'].includes(id))return 'Thu, Oct 22';if(id==='1.3c')return 'Sat, Oct 24';if(['1.2','1.4','1.4a','1.4b','1.4c','1.4d'].includes(id))return 'Fri, Oct 23';
+  if(/^2\.0|^E[12]/.test(id))return 'October limits';if(id==='3.1'||id==='3.5b'||id==='3.3b')return 'Sun, Oct 25';if(/^3\.[234]/.test(id))return '$250 to cover';
+  return 'Mon, Oct 26';}
+function topbar(id,s){const b=BAR||{title:{H:'Hi, Erin',L:'Ledger',LIM:'Limits','3.5':'Limits','3.5a':'Limits'}[id]||s.t};
+  return `<div class="topfade"></div><div class="topbar">${b.back?'<button class="tb-back" data-go="back" aria-label="Back">←</button>':'<span class="tb-dot"></span>'}<b>${b.title}</b><span>${barRight(id)}</span></div>`;}
 function render(){
-  clearTimeout(timer);
-  const s=S[cur];let html='';st.seen.add(cur);if(s.tab&&!s.base)st.last[s.tab]=cur;if(cur==='3.5'){st.plan=true;st.daniel='planned';}if(cur==='3.5a'||cur==='3.5b')st.plan=false;if(cur==='3.3b')st.daniel='left';if(cur==='2.1'&&!st.applied){st.applied=1;ORDER.forEach(n=>{if(n in st.cur)st.cur[n]=st.lim[n];});}if(cur==='2.4a'||cur==='2.4b')st.dlim=380;
-  if(s.base){const b=S[s.base];html=`<div class="scr base">${b.h()}</div>${b.tab?tabbar(b.tab):''}<div class="dim" data-go="back"></div><div class="sheet"><div class="grab"></div>${s.sheet()}</div>`;}
+  clearTimeout(timer);BAR=null;
+  const s=S[cur];let html='';st.seen.add(cur);if(s.tab&&!s.base)st.last[s.tab]=cur;if(cur==='3.5'){st.plan=true;st.daniel='planned';}if(cur==='3.5a'||cur==='3.5b')st.plan=false;if(cur==='3.3b')st.daniel='left';if(cur==='2.1'&&!st.applied){st.applied=1;ORDER.forEach(n=>{if(n in st.cur)st.cur[n]=st.suggested[n];});}if(cur==='2.4a'||cur==='2.4b')st.dlim=380;
+  if(s.base){const b=S[s.base];const bh=b.h();html=`<div class="scr base">${bh}</div>${topbar(s.base,b)}${b.tab?tabbar(b.tab):''}<div class="dim" data-go="back"></div><div class="sheet"><div class="grab"></div>${s.sheet()}</div>`;}
   else if(s.raw){html=`<div class="scr" style="padding:0">${s.h()}</div>`;}
-  else{html=`<div class="scr">${s.h()}</div>${s.tab?tabbar(s.tab):''}${s.toast?s.toast():''}`;}
+  else{const sh=s.h();html=`<div class="scr">${sh}</div>${topbar(cur,s)}${s.tab?tabbar(s.tab):''}${s.toast?s.toast():''}`;}
   if(st.flash&&!s.base){html+=`<div class="toast ${s.tab?'':'low'}"><span>${st.flash.t}</span>${st.flash.undo?'<button data-act="undoFlash">Undo</button>':''}</div>`;st.lastFlash=st.flash;st.flash=null;}
   phone.innerHTML=status()+html;
   const sc=phone.querySelector('.scr:not(.base)');if(sc&&!keepScroll)sc.scrollTop=0;
@@ -792,7 +811,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.act){act(t.dataset.act);return;}
   if(t.dataset.go)go(t.dataset.go);
 });
-function saveAmt(v){st.lim[st.cat]=v;st.touched[st.cat]=true;st.draft=null;}
+function saveAmt(v){st.suggested[st.cat]=v;st.touched[st.cat]=true;st.draft=null;}
 function toggleCard(c){
   const was=c.classList.contains('open');
   c.parentElement.querySelectorAll('.card.open').forEach(o=>{o.classList.remove('open');o.style.height=o.classList.contains('last')?'':'118px';});
@@ -801,7 +820,7 @@ function toggleCard(c){
   if(last)c.style.height=c.offsetHeight+'px';
   requestAnimationFrame(()=>{c.classList.add('open');c.style.height=(100+(+c.dataset.dh)+(last?20:58))+'px';});
 }
-function reset(){Object.assign(st,{share:50,guess:0,move:'Shopping',checks:[true,true,false,true],nextTime:true,lim:{Dining:300,Groceries:450,Fun:150,Shopping:200,Gas:160,'Personal care':null},touched:{},cat:'Fun',draft:null,opt:'A',seg:'oct',useful:null,oneoff:[true,false,false]});}
+function reset(){Object.assign(st,{share:50,guess:0,move:'Shopping',checks:[true,true,false,true],nextTime:true,suggested:{Dining:300,Groceries:450,Fun:150,Shopping:200,Gas:160,'Personal care':null},touched:{},cat:'Fun',draft:null,opt:'A',seg:'oct',useful:null,oneoff:[true,false,false]});}
 function startFlow(f){flow=f;hist=[];cur=START[f];reset();st.homeTab='today';st.day=TODAY;st.split=null;st.jkm=null;st.daniel='flag';st.dlim=null;st.cats={};st.catBase=null;st.flash=null;st.last={};st.seen=new Set();st.plan=false;st.applied=0;
   st.cur={Dining:300,Groceries:450,Fun:110,Shopping:200,Gas:160};
   st.ai=AI_BY_FLOW[f];   /* the only thing that differs between flows */
